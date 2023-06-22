@@ -1,13 +1,15 @@
-#include <iostream>
-#include <algorithm>
-#include <functional>
-#include <string>
-#include <fstream>
-#include <sstream>
-#include <vector>
+//Adding the required dependencies
+#include <iostream>   //this function is used for basic input and output operations
+#include <algorithm>  //this function is used for the sorting command
+#include <functional>   //this function is used for comparison purposes
+#include <string>       //this function is used for string related concepts
+#include <fstream>      //this function is used for file operations
+#include <sstream>      //this function is used to work with strings outputs and inputs
+#include <vector>       //this function is used for vector class, a dynamic array
 
 using namespace std;
 
+//Define the class item
 class Item {
 private:
     int id;
@@ -15,6 +17,7 @@ private:
     int quantity;
     string registeredDate;
 
+//getters and setters
 public:
     Item(int id, string name, int quantity, string registeredDate) {
         this->id = id;
@@ -54,6 +57,26 @@ public:
     void setRegisteredDate(string registeredDate) {
         this->registeredDate = registeredDate;
     }
+    bool isRegisteredDateValid() const {
+        // Check if the registeredDate is in a valid format
+        // For example, assuming valid format is "MM/DD/YYYY"
+        string format = "YYYY-MM-DD";
+        if (registeredDate.length() != format.length())
+            return false;
+
+        for (int i = 0; i < format.length(); i++) {
+            if (format[i] == 'M' && !isdigit(registeredDate[i]))
+                return false;
+            if (format[i] == 'D' && !isdigit(registeredDate[i]))
+                return false;
+            if (format[i] == 'Y' && !isdigit(registeredDate[i]))
+                return false;
+            if (format[i] == '/' && registeredDate[i] != '/')
+                return false;
+        }
+
+        return true;
+    }
 };
 
 class Inventory {
@@ -82,11 +105,29 @@ public:
         string second = b;
         return a[2] < b[2];
     }
+    bool isString(const string& input) {
+    for (char c : input) {
+        if (!isalpha(c) && c != ' ') {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool isNumber(const string& input) {
+    for (char c : input) {
+        if (!isdigit(c)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 
     void commandSyntaxes() {
         cout << endl << endl;
         cout << "------------------------------------------------------------" << endl;
-        cout << "*                  Commands Syntaxes                        " << endl;
+        cout << "*                  Commands Syntaxes                       *" << endl;
         cout << "------------------------------------------------------------" << endl;
         cout << "itemadd <item_id> <item_name> <quantity> <registration_date>" << endl;
         cout << "itemslist" << endl;
@@ -102,43 +143,64 @@ public:
         }
         file.close();
     }
+void addItem(Item item) {
+    bool found = false;
+    for (const auto& p : items) {
+        if (p.getId() == item.getId() || p.getName() == item.getName()) {
+            found = true;
+            break;
+        }
+    }
+    
+    if (found) {
+        cout << "The item already exists!" << endl;
+    } else {
+        // Check if the item already exists in the file
+        ifstream file("inventory.csv");
+        string line;
+        while (getline(file, line)) {
+            stringstream ss(line);
+            string id, name;
+            getline(ss, id, ',');
+            getline(ss, name, ',');
 
-    void addItem(Item item) {
-        bool found = false;
-        for (const auto& p : items) {
-            if (p.getId() == item.getId() || p.getName() == item.getName()) {
+            if (stoi(id) == item.getId() || name == item.getName()) {
                 found = true;
                 break;
             }
         }
+        file.close();
 
         if (found) {
-            cout << "The item already exists!" << endl;
+            cout << "The item already exists in the file!" << endl;
         } else {
-            ifstream file("inventory.csv");
-            string line;
-            while (getline(file, line)) {
-                stringstream ss(line);
-                string id, name;
-                getline(ss, id, ',');
-                getline(ss, name, ',');
+            if (!isNumber(std::to_string(item.getId()))) {
+    cout << "Invalid item ID! Please enter a valid numeric ID." << endl;
+    return;
+}
 
-                if (stoi(id) == item.getId() || name == item.getName()) {
-                    found = true;
-                    break;
-                }
+            if (!isString(item.getName())) {
+                cout << "Invalid item name! Please enter a valid string." << endl;
+                return;
             }
-            file.close();
 
-            if (found) {
-                cout << "The item already exists in the file!" << endl;
-            } else {
-                items.push_back(item);
-                cout << "Item added successfully." << endl;
-                saveInventoryToFile("inventory.csv");
+            if (!isNumber(std::to_string(item.getQuantity()))) {
+    cout << "Invalid quantity! Please enter a valid numeric quantity." << endl;
+    return;
+}
+
+            if (!item.isRegisteredDateValid()) {
+                cout << "Invalid registered date format! Please use the format YYYY-MM-DD." << endl;
+                return;
             }
+            
+            items.push_back(item);
+            saveInventoryToFile("inventory.csv");
         }
     }
+}
+
+
 
     void listItems() const {
         vector<Item> allItems{};
@@ -172,7 +234,7 @@ public:
     int help() {
         string command;
         do {
-            cout << "Console>";
+//            cout << "Console>";
             getline(cin, command);
             string commandCopy = toLowerCase(command);
             vector<string> splittedCommand = splitString(commandCopy, ' ');
